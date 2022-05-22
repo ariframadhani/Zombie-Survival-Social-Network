@@ -3,16 +3,28 @@ const {SurvivorService} = require("../service/SurvivorService");
 const {successResponse} = require("../core/ApiUtil");
 
 const prefixRoute = '/report';
-app.get(`${prefixRoute}/percentage-survivor`,
+app.get(`${prefixRoute}/survivor-percentage`,
   async (req, res) => {
   const percentageSurvivor = await SurvivorService.getSurvivorPercentage();
-  const averageAmountItems = await SurvivorService.getAverageAmountItems();
-  const pointLost = await SurvivorService.getPointLost();
 
   return res.json(successResponse({
     ...percentageSurvivor,
-    ...averageAmountItems,
-    pointLost,
   }))
+});
+
+app.get(`${prefixRoute}/average-amount-item`,
+  async (req, res) => {
+    const averageAmountItems = await SurvivorService.getAverageAmountItems();
+    return res.json(successResponse({
+      ...averageAmountItems
+    }))
+  }
+)
+
+app.get(`${prefixRoute}/point-lost`, async (req, res) => {
+  const pointLost = await SurvivorService.getPointLost();
+  return res.json(
+    successResponse(pointLost)
+  )
 });
 

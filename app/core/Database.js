@@ -30,6 +30,6 @@ exports.initSequelize = () => {
 exports.sequelizeInstance = () => {
     return sequelize;
 }
-exports.rawQuery = (query) => {
-    return sequelize.query(query);
+exports.rawQuery = (query, options) => {
+    return sequelize.query(query, options);
 }

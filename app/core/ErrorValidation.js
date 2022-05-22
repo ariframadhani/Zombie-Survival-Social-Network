@@ -4,4 +4,4 @@ class ErrorValidation extends Error {
   }
 }
 
-exports.ValidationError = ErrorValidation;
+exports.ErrorValidation = ErrorValidation;

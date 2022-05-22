@@ -1,10 +1,14 @@
-const {ValidationError} = require("../core/ErrorValidation");
+const {ErrorValidation} = require("../core/ErrorValidation");
+const {errorResponse} = require("../core/ApiUtil");
 
-exports.validationError = (error, req, res, next) => {
-  console.log('errrror', req)
-  if (next.constructor === ValidationError) {
-    console.log('ok');
-    // return response.json(errorCode(ErrorCode.VALIDATION_ERROR, err.message));
+exports.ValidationError = function(err, req, res, next) {
+  if(err instanceof ErrorValidation) {
+    return res.json(errorResponse(err.message))
   }
+
+  if (err) {
+    return res.status(500).json(errorResponse('Something went wrong'));
+  }
+
   next();
-};
+}

@@ -13,7 +13,7 @@ app.post(`${prefixRoute}/register`,
   }
 
   const survival = await Survivor.create({
-    name: input.name,
+    name: input.name.trim(),
     age: input.age,
     gender: input.gender,
     waterTotal: input.waterTotal,
@@ -22,7 +22,7 @@ app.post(`${prefixRoute}/register`,
     ammunitionTotal: input.ammunitionTotal
   });
 
-  res.status(200).json(successResponse(survival));
+  res.json(successResponse(survival));
 });
 
 app.patch(`${prefixRoute}/:survivorId/update-location`,

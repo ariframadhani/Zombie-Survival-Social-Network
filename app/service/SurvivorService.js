@@ -1,5 +1,7 @@
 const {Constant} = require("../core/Constant");
-const {rawQuery} = require("../core/Database");
+const {rawQuery, sequelizeInstance} = require("../core/Database");
+const {Survivor} = require("../models/Survivor");
+const {ErrorValidation} = require("../core/ErrorValidation");
 
 class SurvivorService {
   static async getSurvivorPercentage() {
@@ -29,12 +31,13 @@ class SurvivorService {
       }
     }
 
+    const total = totalSurvivor[0][0].total;
     return {
-      infectedSurvivorPercentage: (
-        (infected / totalSurvivor[0][0].total) * 100
+      infectedSurvivorPercentage: total <= 0 ? 0 : (
+        (infected / total) * 100
       ).toFixed(2),
-      notInfectedSurvivorPercentage: (
-        (notInfected / totalSurvivor[0][0].total) * 100
+      notInfectedSurvivorPercentage: total <= 0 ? 0 : (
+        (notInfected / total) * 100
       ).toFixed(2)
     }
   }
@@ -50,10 +53,14 @@ class SurvivorService {
     `);
 
     return {
-      waterAverage: data[0][0].waterAverage.toFixed(2),
-      foodAverage: data[0][0].foodAverage.toFixed(2),
-      medicationAverage: data[0][0].medicationAverage.toFixed(2),
-      ammunitionAverage: data[0][0].ammunitionAverage.toFixed(2),
+      waterAverage: data[0][0].waterAverage ?
+      data[0][0].waterAverage : 0,
+      foodAverage: data[0][0].foodAverage ?
+      data[0][0].foodAverage : 0,
+      medicationAverage: data[0][0].medicationAverage ?
+      data[0][0].medicationAverage : 0,
+      ammunitionAverage: data[0][0].ammunitionAverage ?
+      data[0][0].ammunitionAverage : 0,
     }
   }
 
@@ -102,10 +109,18 @@ class SurvivorService {
     if (survivor.ammunitionTotal < ammunitionTotal) {
       stockInsufficient.push(Constant.ITEM_TO_TRADE.AMMUNITION)
     }
+
+    if (stockInsufficient.length > 0) {
+      throw new ErrorValidation(`${stockInsufficient.join(',')} insufficient`);
+    }
     return stockInsufficient;
   }
 
-  static async updateItemAfterTrade(type, updatedSurvivorItem) {
+  static async updateItemAfterTrade(
+    type,
+    updatedSurvivorItem,
+    sequelizeTransaction
+  ) {
     const operator = type === Constant.SURVIVOR_ITEM_INCREASE ? '+' : '-';
     await rawQuery(`
         update survivor
@@ -114,7 +129,75 @@ class SurvivorService {
             medicationTotal = medicationTotal ${operator} ${updatedSurvivorItem.medicationTotal},
             ammunitionTotal = ammunitionTotal ${operator} ${updatedSurvivorItem.ammunitionTotal}
         where id = ${updatedSurvivorItem.id}
-    `);
+    `, {transaction: sequelizeTransaction});
+  }
+
+  static async swapItem(seller, buyer) {
+    const transaction = await sequelizeInstance().transaction();
+    try {
+      await SurvivorService.updateItemAfterTrade(
+        Constant.SURVIVOR_ITEM_INCREASE,
+        seller,
+        transaction
+      );
+      await SurvivorService.updateItemAfterTrade(
+        Constant.SURVIVOR_ITEM_INCREASE,
+        buyer,
+        transaction
+      );
+
+      buyer.id = buyer.swapId
+      seller.id = seller.swapId;
+
+      await SurvivorService.updateItemAfterTrade(
+        Constant.SURVIVOR_ITEM_DECREASE,
+        buyer,
+        transaction
+      );
+      await SurvivorService.updateItemAfterTrade(
+        Constant.SURVIVOR_ITEM_DECREASE,
+        seller,
+        transaction
+      );
+
+      await transaction.commit();
+    } catch (e) {
+      console.log(e)
+      await transaction.rollback();
+    }
+  }
+
+  static async getSurvivorDetails(
+    sellerSurvivorId,
+    buyerSurvivorId,
+  ) {
+    const survivors = await Survivor.findAll({
+      where: {
+        id: [
+          sellerSurvivorId,
+          buyerSurvivorId
+        ]
+      }
+    })
+
+    const sellerDetails = survivors.find(
+      x => x.id === sellerSurvivorId
+    );
+    if (!sellerDetails) {
+      throw new ErrorValidation('Seller details not found');
+    }
+
+    const buyerDetails = survivors.find(
+      x => x.id === buyerSurvivorId
+    );
+    if (!buyerDetails) {
+      throw new ErrorValidation('Buyer details not found');
+    }
+
+    return {
+      sellerDetails,
+      buyerDetails
+    };
   }
 }
 

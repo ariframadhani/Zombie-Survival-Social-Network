@@ -1,6 +1,7 @@
 const express = require('express');
 const Database = require('../app/core/Database');
 const {Router} = require("./Router");
+const {ValidationError} = require("./middleware/ValidationError");
 const port = 5050;
 const app = express();
 
@@ -13,3 +14,4 @@ app.listen(port, () => {
 });
 exports.app = app;
 Router.init();
+app.use(ValidationError);
