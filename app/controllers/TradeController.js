@@ -4,8 +4,7 @@ const {SurvivorService} = require("../service/SurvivorService");
 const {TradeService} = require("../service/TradeService");
 const {Constant} = require("../core/Constant");
 
-const prefixRoute = '/trade';
-app.post(`${prefixRoute}/register`,
+app.post(`/trade`,
   async (
     req,
     res,
